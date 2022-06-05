@@ -1,0 +1,103 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Jun  4 21:41:14 2022
+
+@author: lawre
+"""
+
+import random
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+# Rolling a dice
+
+def dice():
+    number=  [1,2,3,4,5,6]
+    return random.choice(number)
+ 
+series = np.array([dice() for x in range(100000)])
+print (series)
+from math import factorial
+
+#Uniform distribution 
+plt.figure(figsize = (20,10))
+plt.hist(series,bins = 11,align = 'mid')
+plt.xlabel('Dice Number')
+plt.ylabel('Occurences')
+plt.grid()
+plt.show()
+
+print (len([x for x in series if x <= 3])/float(len(series)))
+print (np.mean(series))
+
+#Binomial distribution, 
+#A binomial distribution is a discrete probability distribution of the number
+# of successes in a sequence of n independent experiments.
+def trial():
+    number = [1,2,3,4,5,6,7,8,9,10]
+    a = random.choice(number)
+    if a<= 7:
+        return 1
+    else:
+        return 0
+
+res = [trial() for x in range(10)]
+print (sum(res))
+
+def binomial(number):
+    l = []
+    for i in range(10000):
+        res = [trial() for x in range(10)]
+        l.append(sum(res))
+    return len([x for x in l if x == number])/float(len(l))
+ 
+print (binomial(8))
+
+prob = []
+for i in range(1,11):
+    prob.append(binomial(i))
+prob_s = pd.Series(prob,index = range(1,11))
+print (prob_s)
+
+print ((float(factorial(10))/(factorial(7)*factorial(10-7)))*(0.7**7)*(0.3**3))
+print ((float(factorial(10))/(factorial(8)*factorial(10-8)))*(0.7**8)*(0.3**2))
+
+plt.figure(figsize = (20,10))
+plt.bar(range(1,11),prob)
+plt.grid()
+plt.show()
+
+norm = pd.Series(np.random.normal(0,1,100000))
+type(norm)
+
+#normal distribution
+
+plt.figure(figsize = (20,10))
+norm.plot.density()
+plt.show()
+
+#distribution of SPY
+import quandl
+spy_table = quandl.get('LSE/SPY5')
+spy = spy_table.loc['2009':'2017',['Last Close']]
+spy['log_return'] = np.log(spy['Last Close']).diff()
+spy = spy.dropna()
+
+plt.figure(figsize = (20,10))
+spy.log_return.plot()
+plt.show()
+
+plt.figure(figsize = (20,10))
+spy.log_return.plot.density()
+plt.show()
+
+#We can demonstrate the normal distribution with different mean and variance by simulation
+de_2 = pd.Series(np.random.normal(0,2,10000),name = 'μ = 0, σ = 2')
+de_3 = pd.Series(np.random.normal(0,3,10000),name = 'μ = 0, σ = 3')
+de_0 = pd.Series(np.random.normal(0,0.5,10000), name ='μ = 0, σ = 0.5')
+mu_1 = pd.Series(np.random.normal(-2,1,10000),name ='μ = -2, σ = 1')
+df = pd.concat([de_2,de_3,de_0,mu_1],axis = 1)
+plt.figure(figsize=(20,10))
+df.plot.density()
+plt.show()
