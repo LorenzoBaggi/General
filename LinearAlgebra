@@ -1,0 +1,58 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Jun  5 14:20:49 2022
+
+@author: lawre
+"""
+import numpy as np
+
+a = np.array([1,2,3])
+b = np.array([2,2,2])
+c = np.array([3,1,1])
+
+matrix = np.column_stack((a,b,c))
+print(matrix)
+print(type(matrix))
+
+#It is worth noticing that we used column_stack() here to ensure that the
+#vectors are vertical and placed side-by-side to form a matrix. Without the 
+#column_stack() function, the vectors will be made horizontal
+#and stacked on top of one another:
+    
+#Since matrix multiplication is defined in terms of scalar products, 
+#the matrix product AB exists only if A has as many columns as B has rows
+
+#A natrual consequence of this fact is that matrix multiplication is not
+#commutative. In other words, AB≠BA in general.
+matrix2 = np.array([a,b,c])
+print(matrix2)
+
+A = np.array([[2,3],[4,2],[2,2]])
+B = np.array([[4,2],[4,6]])
+
+x = np.dot(A,B)
+print(x)
+
+#it does not work
+#x = np.dot(B,A)
+
+#Inverse matrices are computed using the Gauss-Jordan method. 
+#In NumPy, we use the linalg.inv() function to do it:
+
+print(matrix)
+print('\n-------------seperation line------------\n')
+print(np.linalg.inv(matrix))
+
+inverse = np.linalg.inv(matrix)
+print(np.dot(matrix,inverse))
+print('\n-------------seperation line------------\n')
+print(np.dot(inverse,matrix))
+
+#A common problem in linear algebra is solving linear equations.
+#Consider the following linear equations:
+A = np.array([[2,1,-1],[-3,-1,2],[-2,1,2]])
+B = np.array([[8],[-11],[-3]])
+inv_A = np.linalg.inv(A)
+print(np.dot(inv_A,B))
+
+print(np.linalg.solve(A,B))
