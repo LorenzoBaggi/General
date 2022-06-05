@@ -1,0 +1,85 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Jun  5 14:31:44 2022
+
+@author: lawre
+In this script we've seen market risk means in the context of CAPM, 
+and how market risk can be reduced. In the next script we will generalize CAPM
+to multi-factor models, such as the Fama-French models.
+"""
+import quandl
+import pandas as pd
+import numpy as np
+from googlefinance import getQuotes
+import json
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+from scipy.stats.mstats import normaltest
+import time
+from cvxopt import matrix
+import seaborn as sns
+import statsmodels.tsa.stattools as ts
+quandl.ApiConfig.api_key = 'BvG_GP_A6WxW4um-Gdz-'
+
+class stock(object):
+    def __init__(self,ticker):
+        self.ticker = ticker
+tickers = ["MMM", "AXP", "AAPL", "BA", "CAT", "CVX", "CSCO","KO",
+                "DIS","DD","XOM","GE","GS","HD","IBM","INTC","JPM","MCD",
+                "MRK","MSFT","NKE","PFE","PG","TRV","UTX","UNH","VZ","WMT"]         
+stocks = []
+for i in tickers:
+    vars()[i] = stock(i)
+    stocks.append(vars()[i])
+    
+for i in stocks:
+    table = quandl.get('WIKI/%s'%i.ticker,start_date = '2012-03-21',end_date = '2015-01-01')
+    i.rate = np.log(table['Adj. Close']).diff().dropna()
+    i.mean = np.mean(i.rate)*252
+    i.std = np.std(i.rate)*np.sqrt(252)
+    
+spy = quandl.get('LSE/SPY5')
+spy = np.log(spy['Last Close']).diff().dropna()
+
+class rolling(object):
+    def __init__(self,ticker,series,spy_series):
+        self.ticker = ticker
+        self.prices = series
+        self.spy = spy_series
+        self.df = pd.concat([self.prices,self.spy],axis = 1).dropna()
+        self.df.columns = ['SPY','%s'%self.ticker]
+        self.prices = self.df['%s'%self.ticker]
+        self.spy = self.df['SPY']
+        
+    def roll(self, length):
+        df_leng = self.df.shape[0]
+        beta, beta_p, inter, inter_p,resid = [],[],[],[],[]
+        loop = df_leng - length
+        for i in range(loop):
+            x = sm.add_constant(self.spy[i:i+length])
+            model = sm.OLS(self.prices[i:i+length],x).fit()
+            beta.append(model.params[1])
+            beta_p.append(model.pvalues[1])
+            inter.append(model.params[0])
+            inter_p.append(model.pvalues[0])
+        beta_df = pd.DataFrame({'beta':beta,'beta_p':beta_p,'inter':inter,'inter_p':inter_p},index = self.df.index[length:])
+        self.beta_df = beta_df
+        self.mean_beta = np.mean(beta)
+        self.std_beta = np.std(beta)
+        
+for i in stocks:
+    i.r = rolling(i.ticker, i.rate,spy)
+    i.r.roll(21*6)
+    
+tickers = [x.ticker for x in stocks]
+mean_betas = [x.r.mean_beta for x in stocks]
+sd_betas = [x.r.std_beta for x in stocks]
+beta_list = [x.r.beta_df['beta'] for x in stocks if len(x.r.beta_df['beta']) != 0]
+sd_beta_p = [np.std(x.r.beta_df['beta_p']) for x in stocks]
+df = pd.DataFrame({'mean_beta':mean_betas,'sd_beta':sd_betas,'sd_beta_p':sd_beta_p},index = tickers).dropna()
+print(df)
+
+cov_matrix = np.corrcoef(beta_list)
+cov_df = pd.DataFrame(cov_matrix)
+plt.figure(figsize = (20,10))
+sns.heatmap(cov_df, xticklabels = df.index, yticklabels = df.index,annot=True,cmap="YlGnBu")
